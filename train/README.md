@@ -44,9 +44,13 @@ sh scripts/convert_to_onnx.sh 1 lpcv_train.yaml
 ```
 
 ### Checkpoints 
+
+#### Note: since github repo size limit, the checkpoints are moved to [Google Drive](https://drive.google.com/drive/folders/1IcTfaAnL1sRl8hx2k2BpYNIGK-UJe-bm?usp=drive_link).
+
 - `models/pretrain_weight.pth` includes pretrain weights, which only contain backbone weights since it was trained on classification datasets.
 
 - `models/ckpt_weight_with_ema.pth` is our trained weights, which is the same as our submission.
 
 ### Training log
-`tf_logs/events.out.tfevents.1690350062.log` 
+see `tf_logs/events.out.tfevents.1690350062.log`, view with tensorboard
+
