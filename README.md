@@ -3,7 +3,7 @@
 ## LPCV 2023 introduction
 https://lpcv.ai/2023LPCVC/introduction
 
-## Environment
+## Inference Environment
 ### Hardware
 [NVIDIA Jetson Nano 2GB](https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-2gb-devkit)
 
@@ -26,3 +26,7 @@ trtexec --workspace=4096 --onnx=xxx.onnx --saveEngine=xxx.trt --best --useSpinWa
 ```
 - put the tensorrt model file into `inference_code` folder
 - pack `inference_code` folder into pyz and submit(this step is same as the sample solution)
+
+## Training 
+
+Goto [Train readme](./train/README.md) for training details, log, codebase, trained weights and reproduction

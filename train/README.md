@@ -2,9 +2,13 @@
 
 ### Training codebase
 
-[United Perception](https://github.com/ModelTC/United-Perception) with [LPCV Plugin]()
+[United Perception](https://github.com/ModelTC/United-Perception) 
 
-### Environment
+with 
+
+[LPCV Plugin]()
+
+### Our Training Environment
 
 #### Hardware
 - 2x Xeon Gold CPU
