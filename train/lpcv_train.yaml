@@ -65,16 +65,16 @@ dataset: # Required.
     dataset:
       type: seg
       kwargs:
-        meta_file: train_meta_repeat_100.txt
+        meta_file: PATH_TO_YOUR_train.txt
         image_reader:
           type: fs_opencv
           kwargs:
-            image_dir: LPCVC_Train_Updated/IMG/train
+            image_dir: PATH_TO_YOUR_train_image
             color_mode: RGB
         seg_label_reader:
           type: fs_opencv
           kwargs:
-            image_dir: LPCVC_Train_Updated/GT_Updated/train
+            image_dir: PATH_TO_YOUR_train_label
             color_mode: GRAY
         transformer: [ *seg_rand_rotate,*seg_rand_resize, *flip, *flip_v,*seg_crop_train, *seg_cutout,*color_jitter, *to_tensor, *normalize ]
         num_classes: *num_classes
@@ -95,16 +95,16 @@ dataset: # Required.
     dataset:
       type: seg_lpcv
       kwargs:
-        meta_file: val_meta.txt
+        meta_file: PATH_TO_YOUR_test_txt
         image_reader:
           type: fs_opencv
           kwargs:
-            image_dir: LPCVC_Val/IMG/val
+            image_dir: PATH_TO_YOUR_test_image
             color_mode: RGB
         seg_label_reader:
           type: fs_opencv
           kwargs:
-            image_dir: LPCVC_Val/GT/val
+            image_dir: PATH_TO_YOUR_test_label
             color_mode: GRAY
         transformer: [ *seg_resize, *to_tensor, *normalize ]
         num_classes: *num_classes
