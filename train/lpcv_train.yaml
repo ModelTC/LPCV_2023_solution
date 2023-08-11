@@ -1,0 +1,260 @@
+num_classes: &num_classes 14
+runtime:
+  task_names: seg
+
+seg_rand_resize: &seg_rand_resize
+  type: seg_rand_resize
+  kwargs:
+    scale: [ 0.5, 2.0 ]
+
+seg_rand_resize_after: &seg_rand_resize_after
+  type: seg_rand_resize
+  kwargs:
+    scale: [ 0.8, 1.2 ]
+
+seg_resize: &seg_resize
+  type: seg_resize
+  kwargs:
+    size: [ 512, 512 ]
+color_jitter: &color_jitter
+  type: color_jitter_mmseg
+  kwargs:
+    color_type: &color_type RGB
+seg_crop_train: &seg_crop_train
+  type: seg_crop
+  kwargs:
+    size: [ 512, 512 ]
+    crop_type: rand
+
+seg_cutout: &seg_cutout
+  type: seg_cutout
+  kwargs:
+    n_holes: 2
+    length: 0.1
+    ignore_index: 255
+
+seg_flip: &flip
+  type: seg_random_flip
+
+seg_flip_v: &flip_v
+  type: seg_random_flip_vertical
+
+seg_rand_rotate: &seg_rand_rotate
+  type: seg_rand_rotate_lpcv
+  kwargs:
+    angle: 40.
+    prob: 0.8
+
+seg_crop_test: &seg_crop_test
+  type: seg_crop
+  kwargs:
+    size: [ 512, 512 ]
+    crop_type: center
+
+to_tensor: &to_tensor
+  type: custom_to_tensor
+
+normalize: &normalize
+  type: normalize
+  kwargs:
+    mean: [ 123.675, 116.28, 103.53 ] # ImageNet pretrained statics
+    std: [ 58.395, 57.12, 57.375 ]
+
+dataset: # Required.
+  train:
+    dataset:
+      type: seg
+      kwargs:
+        meta_file: train_meta_repeat_100.txt
+        image_reader:
+          type: fs_opencv
+          kwargs:
+            image_dir: LPCVC_Train_Updated/IMG/train
+            color_mode: RGB
+        seg_label_reader:
+          type: fs_opencv
+          kwargs:
+            image_dir: LPCVC_Train_Updated/GT_Updated/train
+            color_mode: GRAY
+        transformer: [ *seg_rand_rotate,*seg_rand_resize, *flip, *flip_v,*seg_crop_train, *seg_cutout,*color_jitter, *to_tensor, *normalize ]
+        num_classes: *num_classes
+        ignore_label: 255
+    batch_sampler:
+      type: base
+      kwargs:
+        sampler:
+          type: dist
+          kwargs: { }
+        batch_size: 16
+    dataloader:
+      type: seg_base
+      kwargs:
+        num_workers: 24
+        pin_memory: True
+  test:
+    dataset:
+      type: seg_lpcv
+      kwargs:
+        meta_file: val_meta.txt
+        image_reader:
+          type: fs_opencv
+          kwargs:
+            image_dir: LPCVC_Val/IMG/val
+            color_mode: RGB
+        seg_label_reader:
+          type: fs_opencv
+          kwargs:
+            image_dir: LPCVC_Val/GT/val
+            color_mode: GRAY
+        transformer: [ *seg_resize, *to_tensor, *normalize ]
+        num_classes: *num_classes
+        ignore_label: 255
+        output_pred: True
+        output_gt: True
+        evaluator:
+          type: seg_with_dice               # choices = {'COCO', 'VOC', 'MR'}
+          kwargs:
+            num_classes: *num_classes
+            cmp_key: dice
+    batch_sampler:
+      type: base
+      kwargs:
+        sampler:
+          type: dist
+          kwargs: { }
+        batch_size: 1
+    dataloader:
+      type: seg_base
+      kwargs:
+        num_workers: 2
+        pin_memory: False
+
+trainer: # Required.
+  max_iter: &max_iter 20000
+  test_freq: 1
+  save_freq: 20000
+  only_save_latest: True
+  optimizer:
+    register_type: segformer
+    type: AdamW
+    kwargs:
+      lr: 4.0e-6
+      betas: !!python/tuple [ 0.9, 0.999 ]
+      weight_decay: 0.01
+    special_param_group: [ { 'key': 'decoder', 'lr': 4.0e-5, 'weight_decay': 0.01 },
+                           { 'key': 'norm', 'lr': 4.0e-6, 'weight_decay': 0.0 },
+                           { 'key': 'bn', 'lr': 4.0e-6, 'weight_decay': 0.0 } ]
+  lr_scheduler:
+    warmup_iter: 1500          # 1000 iterations of warmup
+    warmup_type: linear
+    warmup_ratio: 0.000001
+    type: polylr
+    kwargs:
+      power: 1.0
+      max_iter: *max_iter
+
+
+
+ema:
+  enable: True
+  ema_type: exp
+  kwargs:
+    decay: 0.9998
+
+saver: # Required.
+  save_dir: checkpoints/LPCV_2023_Seg    # dir to save checkpoints
+  results_dir: results_dir/LPCV_2023_Seg  # dir to save detection results. i.e., bboxes, masks, keypoints
+  pretrain_model: models/pretrain_weight.pth
+  auto_resume: True  # find last checkpoint from save_dir and resume from it automatically
+  # this option has the highest priority (auto_resume > opts > resume_model > pretrain_model)
+
+hooks:
+  - type: auto_save_best
+  - type: yolox_noaug
+    kwargs:
+      no_aug_epoch: 3
+      test_freq: 1
+      save_freq: 999999
+      max_epoch: 25
+      transformer: [ *seg_rand_resize_after, *flip, *seg_crop_train, *to_tensor, *normalize ]
+
+net: &subnet
+  - name: backbone            # backbone = resnet50(frozen_layers, out_layers, out_strides)
+    type: LPCV_2023_Seg_Backbone
+    kwargs:
+      out_layers: [ 0,1,2,3,4 ]
+      out_strides: [ 4,8,16,32,64 ]
+      frozen_layers: [ ]
+      more_act: True
+      force_connect: False
+      input_resize: True
+      input_resize_ratio: 0.5
+#      input_resize_mode: bilinear
+#      input_resize_align_corners: True
+      width: [ [ 3, 16, 16, ],
+               [ 16, 32, 32 ],
+               [ 32, 64, 64, ],
+               [ 64, 128, 128, ],
+               [ 128, 192, 192, 192, 192, ],
+               [ 192, 256, 256, 256, 256, 256, ],
+      ]
+      expand_ratio: [ [ 1, 1, ],
+                      [ 1, 1, ],
+                      [ 1, 1, ],
+                      [ 1, 1, ],
+                      [ 1, 1, 1, 1, ],
+                      [ 1, 1, 1, 1, 1, ], ]
+      dbb: True
+      dbb_mid_expand_factor: 1.
+      dropout_prob: 0.05
+      dense_connect: True
+      normalize:
+        type: sync_bn
+        kwargs:
+          group_size: 8
+      initializer:
+        method: xavier
+  - name: neck
+    prev: backbone
+    type: LPCV_2023_Seg_Neck # up.tasks.det.models.necks.fpn.FPN
+    kwargs:
+      num_repeat: 1
+      outplanes: -1
+      align_channels: False
+      start_level: 3
+      num_level: 5            # if num_level>len(backbone.out_layers), additional conv with be stacked.
+      out_strides: [ 4,8,16,32,64 ] # strides of output features. aka., anchor strides for roi_head
+      downsample: conv        # method to downsample, for FPN, it's pool, for RetienaNet, it's conv
+      upsample: deconv       # method to interp, nearest or bilinear
+      split_deconv: True
+      padding: [ [ 1, 1 ], [ 1, 1 ], [ 1, 1 ], [ 1, 1 ], [ 1, 1 ] ]
+      output_padding: [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ]
+      deconv_kernel: [ 4, 4, 4, 4, 4 ]
+      use_dbb: True
+      dbb_ratio: 1.
+      normalize:
+        type: sync_bn
+        kwargs:
+          group_size: 8
+      initializer:
+        method: xavier
+  - name: decoder
+    prev: neck
+    type: LPCV_2023_Seg_Decoder
+    kwargs:
+      num_classes: *num_classes
+      head_planes: 16
+      simple: False
+      antialias: False
+      upsample_mode: bicubic
+      normalize:
+        type: sync_bn
+        kwargs:
+          group_size: 8
+      loss:
+        type: seg_ohem
+        kwargs:
+          aux_weight: 0.4
+          thresh: 0.7
+          min_kept: 40000
+          ignore_index: 255
