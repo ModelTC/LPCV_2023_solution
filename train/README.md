@@ -6,7 +6,7 @@
 
 with 
 
-[LPCV Plugin]()
+[LPCV 2023 Plugin](https://github.com/ModelTC/UP_LPCV2023_Plugin.git)
 
 ### Our Training Environment
 
@@ -32,7 +32,7 @@ with
 ### Training Step
 ```bash
 git clone https://github.com/ModelTC/United-Perception
-git clone xxx
+git clone https://github.com/ModelTC/UP_LPCV2023_Plugin.git
 
 # Assume your Python environment is ready
 # install UP as doc: https://modeltc-up.readthedocs.io/en/latest/index.html
