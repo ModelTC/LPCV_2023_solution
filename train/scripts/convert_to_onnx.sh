@@ -18,4 +18,5 @@ srun -p $PARTITION -n8 --ntasks-per-node=8 --gres=gpu:8 \
   --config=$cfg \
   --save_prefix=toonnx_256 \
   --input_size=3x256x256 \
+  --backend=dist \
   2>&1 | tee log.toonnx.$T.txt
