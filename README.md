@@ -8,6 +8,9 @@ https://lpcv.ai/2023LPCVC/introduction
 ## LPCV 2023 Leaderboard
 https://lpcv.ai/scoreboard/Segmentation23
 
+## News
+- 10/31/2023 IEEE Computer Society published [a blog](https://www.computer.org/publications/tech-news/events/computer-vision-for-disaster-responses?source=home) about the LPCV 2023. Our team ModelTC was announced as the winner of this year’s competition. 
+
 ## Inference Environment
 ### Hardware
 [NVIDIA Jetson Nano 2GB](https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-2gb-devkit)
